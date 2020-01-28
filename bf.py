@@ -9,17 +9,17 @@ class BrainF___:
     _nest_lvl = 0
     _ptr = 0
     _skip = False
-    _ops = GO(['<', '>', '+', '-', ',', '.'])
+    _brackets = GO(['[', ']'])
     _bracket_lookup = {} 
     _method_lookup = { \
-            '<' : 'self.mv_left()',
-            '>' : 'self.mv_right()',
-            '+' : 'self.pp()',
-            '-' : 'self.mm()',
-            '.' : 'self.write()',
-            ',' : 'self.read()',
-            '[' : 'self.loop()',
-            ']' : 'self.endloop()',
+            '<' : 'mv_left',
+            '>' : 'mv_right',
+            '+' : 'pp',
+            '-' : 'mm',
+            '.' : 'write',
+            ',' : 'read',
+            '[' : 'loop',
+            ']' : 'endloop',
     }
 
     def mv_left(self):
@@ -71,11 +71,11 @@ class BrainF___:
 
     def run(self):
         for c in iter(lambda: self._file.read(1), ''):
-            if self._skip and c in self._ops: 
+            if self._skip and c not in self._brackets: 
                 continue
 
             if c in self._method_lookup:
-                eval(self._method_lookup[c])
+                getattr(self, self._method_lookup[c])()
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
