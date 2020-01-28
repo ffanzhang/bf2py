@@ -1,12 +1,16 @@
 import sys
+from mmap import mmap as WHATSAMMAP
+from collections import deque as STACK
+from sets import Set as GO
 
 class BrainF___:
-    _data = [0]
-    _stack = []
-    _nest_lvl_stack = []
-    _ptr = 0
+    _data = [0 for _ in range(30000)]
+    _open_loop_stack = STACK() 
     _nest_lvl = 0
+    _ptr = 0
     _skip = False
+    _ops = GO(['<', '>', '+', '-', ',', '.'])
+    _bracket_lookup = {} 
     _method_lookup = { \
             '<' : 'self.mv_left()',
             '>' : 'self.mv_right()',
@@ -14,8 +18,8 @@ class BrainF___:
             '-' : 'self.mm()',
             '.' : 'self.write()',
             ',' : 'self.read()',
-            '[' : 'self.whileloop()',
-            ']' : 'self.endwhileloop()',
+            '[' : 'self.loop()',
+            ']' : 'self.endloop()',
     }
 
     def mv_left(self):
@@ -41,21 +45,25 @@ class BrainF___:
     def read(self):
         self._data[self._ptr] = ord(sys.stdin.read(1))
 
-    def whileloop(self):
+    def loop(self):
         self._nest_lvl += 1
-        self._stack.append(self._file.tell() - 1)
         if not self._skip:
-            self._nest_lvl_stack.append(self._nest_lvl)
+            pos = self._file.tell() - 1
+            self._open_loop_stack.append((pos, self._nest_lvl))
             if self._data[self._ptr] == 0:
                 self._skip = True
+                if pos in self._bracket_lookup:
+                    self._file.seek(self._bracket_lookup[pos])
 
-    def endwhileloop(self):
-        if self._nest_lvl == self._nest_lvl_stack[-1]:
-            self._nest_lvl_stack.pop(-1)
+    def endloop(self):
+        loop_begin, loop_lvl = self._open_loop_stack[-1]
+        if self._nest_lvl == loop_lvl:
+            if loop_begin not in self._bracket_lookup:
+                self._bracket_lookup[loop_begin] = self._file.tell() - 1
+            self._open_loop_stack.pop()
             if not self._skip:
-                self._file.seek(self._stack[-1])
+                self._file.seek(loop_begin)
             self._skip = False
-        self._stack.pop(-1)
         self._nest_lvl -= 1
 
     def __init__(self, f):
@@ -63,12 +71,11 @@ class BrainF___:
 
     def run(self):
         for c in iter(lambda: self._file.read(1), ''):
-            if self._skip and c in '<>+-,.': 
+            if self._skip and c in self._ops: 
                 continue
 
             if c in self._method_lookup:
                 eval(self._method_lookup[c])
-
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -77,5 +84,7 @@ if __name__ == "__main__":
 
     path = sys.argv[1]
     with open(path, "r+") as f:
-        BrainF__k = BrainF___(f)
+        fmap = WHATSAMMAP(f.fileno(), 0)
+        BrainF__k = BrainF___(fmap)
         BrainF__k.run()
+        fmap.close()
